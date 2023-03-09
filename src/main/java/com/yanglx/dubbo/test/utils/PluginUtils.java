@@ -15,8 +15,6 @@ import com.yanglx.dubbo.test.dubbo.DubboMethodEntity;
 import com.yanglx.dubbo.test.ui.DubboPanel;
 import com.yanglx.dubbo.test.ui.Tab;
 import com.yanglx.dubbo.test.ui.TabBar;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -32,8 +30,6 @@ import java.util.Objects;
  */
 
 public class PluginUtils {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PluginUtils.class);
 
     /**
      * 写入文本
