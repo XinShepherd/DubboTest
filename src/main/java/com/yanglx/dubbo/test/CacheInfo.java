@@ -1,7 +1,9 @@
 package com.yanglx.dubbo.test;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.yanglx.dubbo.test.dubbo.DubboMethodEntity;
-import com.yanglx.dubbo.test.utils.JsonUtils;
+import com.yanglx.dubbo.test.utils.Json;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -139,8 +141,8 @@ public class CacheInfo implements Serializable {
         cacheInfo.setMethodName(dubboMethodEntity.getMethodName());
         cacheInfo.setVersion(dubboMethodEntity.getVersion());
         cacheInfo.setGroup(dubboMethodEntity.getGroup());
-        cacheInfo.setMethodTypeJson(JsonUtils.toJSONString(dubboMethodEntity.getMethodType()));
-        cacheInfo.setParamObjJson(JsonUtils.toJSONString(dubboMethodEntity.getParam()));
+        cacheInfo.setMethodTypeJson(Json.stringify(dubboMethodEntity.getMethodType()));
+        cacheInfo.setParamObjJson(Json.stringify(dubboMethodEntity.getParam()));
         cacheInfo.setAddress(dubboMethodEntity.getAddress());
         cacheInfo.setDate(new Date());
         return cacheInfo;
@@ -153,21 +155,27 @@ public class CacheInfo implements Serializable {
      */
     public DubboMethodEntity getDubboMethodEntity() {
         DubboMethodEntity dubboMethodEntity = new DubboMethodEntity();
-        dubboMethodEntity.setId(this.getId());
-        dubboMethodEntity.setInterfaceName(this.getInterfaceName());
-        dubboMethodEntity.setMethodName(this.getMethodName());
-        dubboMethodEntity.setVersion(this.getVersion());
-        dubboMethodEntity.setGroup(this.getGroup());
+        dubboMethodEntity.setId(getId());
+        dubboMethodEntity.setInterfaceName(getInterfaceName());
+        dubboMethodEntity.setMethodName(getMethodName());
+        dubboMethodEntity.setVersion(getVersion());
+        dubboMethodEntity.setGroup(getGroup());
 
-        List<String> stringList = JsonUtils.toJavaList(this.getMethodTypeJson(), String.class);
-        String[] methodTypes = new String[stringList.size()];
-        for (int i = 0; i < stringList.size(); i++) {
-            methodTypes[i] = stringList.get(i);
+        if (StringUtils.isNotBlank(getMethodTypeJson())) {
+            List<String> stringList = Json.fromJson(getMethodTypeJson(), new TypeReference<>() {
+            });
+            String[] methodTypes = new String[stringList.size()];
+            for (int i = 0; i < stringList.size(); i++) {
+                methodTypes[i] = stringList.get(i);
+            }
+            dubboMethodEntity.setMethodType(methodTypes);
         }
-        dubboMethodEntity.setMethodType(methodTypes);
-        String[] array = JsonUtils.toJava(this.getParamObjJson(), String[].class);
-        dubboMethodEntity.setParam(array);
-        dubboMethodEntity.setAddress(this.getAddress());
+
+        if (StringUtils.isNotBlank(getParamObjJson())) {
+            Object[] array = Json.fromJson(getParamObjJson(), Object[].class);
+            dubboMethodEntity.setParam(array);
+        }
+        dubboMethodEntity.setAddress(getAddress());
         return dubboMethodEntity;
     }
 

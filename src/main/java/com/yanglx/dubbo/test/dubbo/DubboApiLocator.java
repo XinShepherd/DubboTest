@@ -4,21 +4,19 @@ package com.yanglx.dubbo.test.dubbo;
 import com.google.common.collect.Lists;
 import com.yanglx.dubbo.test.PluginConstants;
 import com.yanglx.dubbo.test.common.AddressTypeEnum;
-import com.yanglx.dubbo.test.utils.JsonUtils;
+import com.yanglx.dubbo.test.utils.Json;
 import com.yanglx.dubbo.test.utils.StrUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.RegistryConfig;
-import org.apache.dubbo.config.utils.ReferenceConfigCache;
-import org.apache.dubbo.config.utils.ReferenceConfigCache.KeyGenerator;
+import org.apache.dubbo.config.utils.SimpleReferenceCache.KeyGenerator;
+import org.apache.dubbo.config.utils.SimpleReferenceCache;
 import org.apache.dubbo.rpc.service.GenericService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * <p>Description: </p>
@@ -34,7 +32,7 @@ public class DubboApiLocator {
     /**
      * application
      */
-    private static final ApplicationConfig application = new ApplicationConfig();
+    private static final ApplicationConfig application = new ApplicationConfig(PluginConstants.PLUGIN_NAME);
     private static final Logger LOGGER = LoggerFactory.getLogger(DubboApiLocator.class);
     private static final String CACHE_NAME = PluginConstants.PLUGIN_NAME;
 
@@ -56,15 +54,13 @@ public class DubboApiLocator {
         String group = StringUtils.defaultString(referenceConfig.getGroup());
         String version = StringUtils.defaultString(referenceConfig.getVersion());
         String url = StringUtils.defaultString(referenceConfig.getUrl());
-        String registries = StringUtils.defaultString(
-                JsonUtils.toJSONString(referenceConfig.getRegistries()));
 
-        List<String> uniqueParams = Lists.newArrayList(interfaceName, group, version, url, registries);
+        List<String> uniqueParams = Lists.newArrayList(interfaceName, group, version, url);
         return String.join("_", uniqueParams);
     };
 
     static {
-        application.setName(PluginConstants.PLUGIN_NAME);
+        application.setQosEnable(false);
     }
 
     /**
@@ -75,7 +71,9 @@ public class DubboApiLocator {
      * @since 1.0.0
      */
     public Object invoke(DubboMethodEntity dubboMethodEntity) {
-        LOGGER.debug("invoke method ", JsonUtils.toJSONString(dubboMethodEntity));
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("invoke method {}", Json.stringify(dubboMethodEntity));
+        }
 
         if (dubboMethodEntity == null
                 || StrUtils.isBlank(dubboMethodEntity.getAddress())
@@ -83,16 +81,14 @@ public class DubboApiLocator {
                 || StrUtils.isBlank(dubboMethodEntity.getInterfaceName())) {
             return "";
         }
-//        Thread.currentThread().setContextClassLoader(DubboMethodEntity.class.getClassLoader());
         ReferenceConfig<GenericService> referenceConfig = this.getReferenceConfig(dubboMethodEntity);
-        ReferenceConfigCache cache = ReferenceConfigCache.getCache(CACHE_NAME, generator);
-        GenericService genericService = cache.get(referenceConfig);
+        SimpleReferenceCache cache = SimpleReferenceCache.getCache(CACHE_NAME, generator);
         try {
+            GenericService genericService = cache.get(referenceConfig);
             return genericService.$invoke(dubboMethodEntity.getMethodName(),
                     dubboMethodEntity.getMethodType(),
                     dubboMethodEntity.getParam());
         } catch (Exception e) {
-            referenceConfig.destroy();
             cache.destroy(referenceConfig);
             throw e;
         }
@@ -113,6 +109,7 @@ public class DubboApiLocator {
         reference.setGeneric("true");
         reference.setRetries(0);
         reference.setTimeout(10 * 1000);
+        reference.setReconnect("false"); // 不尝试重连
         if (dubboMethodEntity.getAddress().startsWith(AddressTypeEnum.dubbo.name())) {
             reference.setUrl(dubboMethodEntity.getAddress());
         } else {

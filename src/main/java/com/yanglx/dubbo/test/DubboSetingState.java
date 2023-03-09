@@ -22,19 +22,24 @@ import java.util.List;
  * @since 1.0.0
  */
 @State(
-    name = "com.yanglx.dubbo.test.DubboSetingState",
-    storages = {@Storage("dubbo.test.configs.xml")}
+        name = "com.yanglx.dubbo.test.DubboSetingState",
+        storages = {@Storage("dubbo.test.configs.xml")}
 )
 public class DubboSetingState implements PersistentStateComponent<DubboSetingState> {
 
-    /** 存放收藏 */
+    /**
+     * 存放收藏
+     */
     public LinkedList<CacheInfo> paramInfoCacheList = new LinkedList<>();
-    /** 存放历史 */
+    /**
+     * 存放历史
+     */
     public LinkedList<CacheInfo> historyParamInfoCacheList = new LinkedList<>();
 
     public List<CacheInfo> dubboConfigs = new ArrayList<>();
     //限制最大历史记录条数
     private static final int MAX_HISTORY_SIZE = 200;
+
     /**
      * Gets address *
      *
@@ -45,18 +50,18 @@ public class DubboSetingState implements PersistentStateComponent<DubboSetingSta
         if (CacheType.COLLECTIONS.equals(cacheType)) {
             paramInfoCacheList.sort((o1, o2) -> o2.getDate().compareTo(o1.getDate()));
             return paramInfoCacheList;
-        }else {
+        } else {
             historyParamInfoCacheList.sort((o1, o2) -> o2.getDate().compareTo(o1.getDate()));
             return historyParamInfoCacheList;
         }
     }
 
-    public void setDubboConfigs(List<CacheInfo> cacheInfo){
+    public void setDubboConfigs(List<CacheInfo> cacheInfo) {
         this.dubboConfigs.clear();
         this.dubboConfigs.addAll(cacheInfo);
     }
 
-    public List<CacheInfo> getDubboConfigs(){
+    public List<CacheInfo> getDubboConfigs() {
         if (this.dubboConfigs.isEmpty()) {
             CacheInfo cacheInfo = new CacheInfo();
             cacheInfo.setAddress("zookeeper://127.0.0.1:2181");
@@ -77,23 +82,40 @@ public class DubboSetingState implements PersistentStateComponent<DubboSetingSta
         if (CacheType.COLLECTIONS.equals(cacheType)) {
             this.paramInfoCacheList.remove(cacheInfo);
             this.paramInfoCacheList.add(cacheInfo);
-        }else {
-            if (paramInfoCacheList.size() >= MAX_HISTORY_SIZE) {
+        } else {
+            if (historyParamInfoCacheList.size() >= MAX_HISTORY_SIZE) {
                 this.historyParamInfoCacheList.addFirst(cacheInfo);
                 this.historyParamInfoCacheList.removeLast();
-            }else {
+            } else {
                 this.historyParamInfoCacheList.add(cacheInfo);
             }
         }
     }
 
+    public CacheInfo getCacheInfo(String id, CacheType cacheType) {
+        if (CacheType.COLLECTIONS.equals(cacheType)) {
+            for (CacheInfo cacheInfo : paramInfoCacheList) {
+                if (cacheInfo.getId().equals(id)) {
+                    return cacheInfo;
+                }
+            }
+        } else {
+            for (CacheInfo cacheInfo : historyParamInfoCacheList) {
+                if (cacheInfo.getId().equals(id)) {
+                    return cacheInfo;
+                }
+            }
+        }
+        return null;
+    }
+
     /**
      * 移除缓存
      */
-    public void remove(CacheInfo cacheInfo,CacheType cacheType){
+    public void remove(CacheInfo cacheInfo, CacheType cacheType) {
         if (CacheType.COLLECTIONS.equals(cacheType)) {
             this.paramInfoCacheList.remove(cacheInfo);
-        }else {
+        } else {
             this.historyParamInfoCacheList.remove(cacheInfo);
         }
 
@@ -132,7 +154,7 @@ public class DubboSetingState implements PersistentStateComponent<DubboSetingSta
         XmlSerializerUtil.copyBean(state, this);
     }
 
-    public enum CacheType{
+    public enum CacheType {
         HISTORY,
         COLLECTIONS
     }

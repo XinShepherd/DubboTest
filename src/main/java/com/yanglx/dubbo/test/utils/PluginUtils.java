@@ -6,13 +6,7 @@ import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowManager;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiIdentifier;
-import com.intellij.psi.PsiJavaFile;
-import com.intellij.psi.PsiMethod;
-import com.intellij.psi.PsiParameterList;
-import com.intellij.psi.PsiReferenceExpression;
+import com.intellij.psi.*;
 import com.intellij.ui.tabs.TabInfo;
 import com.yanglx.dubbo.test.CacheInfo;
 import com.yanglx.dubbo.test.DubboSetingState;
@@ -21,6 +15,8 @@ import com.yanglx.dubbo.test.dubbo.DubboMethodEntity;
 import com.yanglx.dubbo.test.ui.DubboPanel;
 import com.yanglx.dubbo.test.ui.Tab;
 import com.yanglx.dubbo.test.ui.TabBar;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -34,7 +30,10 @@ import java.util.Objects;
  * @date 2021.02.20 15:57
  * @since 1.0.0
  */
+
 public class PluginUtils {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PluginUtils.class);
 
     /**
      * 写入文本
@@ -45,11 +44,8 @@ public class PluginUtils {
      * @since 1.0.0
      */
     public static void writeDocument(Project project, Document document, String text) {
-        WriteCommandAction.runWriteCommandAction(project, () -> document.setText(text));
-    }
-
-    public static void asynWork(Project project,Runnable runnable){
-        WriteCommandAction.runWriteCommandAction(project, runnable);
+        WriteCommandAction.runWriteCommandAction(project, PluginConstants.PLUGIN_NAME, PluginConstants.PLUGIN_NAME,
+                () -> document.setText(text));
     }
 
     /**
@@ -130,9 +126,7 @@ public class PluginUtils {
                 .getToolWindow(PluginConstants.PLUGIN_NAME);
         if (toolWindow != null) {
             // 无论当前状态为关闭/打开，进行强制打开 ToolWindow
-            toolWindow.show(() -> {
-
-            });
+            IntellijUtils.safelyInvokeLater(() -> toolWindow.show(null));
         }
 
         TabInfo selectedInfo = TabBar.getSelectionTabInfo();
@@ -149,7 +143,7 @@ public class PluginUtils {
         dubboMethodEntity.setMethodType(methodType);
         dubboMethodEntity.setMethodName(methodName);
         dubboMethodEntity.setId(defaultSetting.getId());
-        DubboPanel.refreshUI(component.getDubboPanel(), dubboMethodEntity);
+        IntellijUtils.safelyInvokeLater(() -> DubboPanel.refreshUI(component.getDubboPanel(), dubboMethodEntity));
     }
 
 }

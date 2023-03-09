@@ -7,9 +7,10 @@ import com.yanglx.dubbo.test.CacheInfo;
 import com.yanglx.dubbo.test.DubboSetingState;
 import com.yanglx.dubbo.test.dubbo.DubboApiLocator;
 import com.yanglx.dubbo.test.dubbo.DubboMethodEntity;
-import com.yanglx.dubbo.test.utils.JsonUtils;
+import com.yanglx.dubbo.test.utils.Json;
 import com.yanglx.dubbo.test.utils.PluginUtils;
 import com.yanglx.dubbo.test.utils.StrUtils;
+import io.netty.util.internal.ThrowableUtil;
 
 import javax.swing.*;
 import java.awt.*;
@@ -43,10 +44,7 @@ public class DubboPanel extends JBPanel {
      * Interface name text field
      */
     private JTextField interfaceNameTextField;
-    /** Req pane */
-//    private JPanel reqPane;
-    /** Resp pane */
-//    private JPanel respPane;
+
     /**
      * Tip
      */
@@ -95,89 +93,56 @@ public class DubboPanel extends JBPanel {
         return mainPanel;
     }
 
-    public void setMainPanel(JPanel mainPanel) {
-        this.mainPanel = mainPanel;
-    }
 
     public JButton getInvokeBtn() {
         return invokeBtn;
     }
 
-    public void setInvokeBtn(JButton invokeBtn) {
-        this.invokeBtn = invokeBtn;
-    }
 
     public JTextField getInterfaceNameTextField() {
         return interfaceNameTextField;
     }
 
-    public void setInterfaceNameTextField(JTextField interfaceNameTextField) {
-        this.interfaceNameTextField = interfaceNameTextField;
-    }
 
     public JLabel getTip() {
         return tip;
     }
 
-    public void setTip(JLabel tip) {
-        this.tip = tip;
-    }
 
     public JButton getSaveAsBtn() {
         return saveAsBtn;
     }
 
-    public void setSaveAsBtn(JButton saveAsBtn) {
-        this.saveAsBtn = saveAsBtn;
-    }
 
     public JComboBox<CacheInfo> getAddressBox() {
         return addressBox;
     }
 
-    public void setAddressBox(JComboBox<CacheInfo> addressBox) {
-        this.addressBox = addressBox;
-    }
 
     public JTextField getMethodNameTextField() {
         return methodNameTextField;
     }
 
-    public void setMethodNameTextField(JTextField methodNameTextField) {
-        this.methodNameTextField = methodNameTextField;
-    }
 
     public JTextField getVersionTextField() {
         return versionTextField;
     }
 
-    public void setVersionTextField(JTextField versionTextField) {
-        this.versionTextField = versionTextField;
-    }
 
     public JTextField getGroupTextField() {
         return groupTextField;
     }
 
-    public void setGroupTextField(JTextField groupTextField) {
-        this.groupTextField = groupTextField;
-    }
 
     public JButton getSaveBtn() {
         return saveBtn;
     }
 
-    public void setSaveBtn(JButton saveBtn) {
-        this.saveBtn = saveBtn;
-    }
 
     public JPanel getEditorPane() {
         return editorPane;
     }
 
-    public void setEditorPane(JPanel editorPane) {
-        this.editorPane = editorPane;
-    }
 
     public JsonEditor getJsonEditorReq() {
         return jsonEditorReq;
@@ -207,7 +172,8 @@ public class DubboPanel extends JBPanel {
         return dubboMethodEntity;
     }
 
-    private ExecutorService executorService = Executors.newFixedThreadPool(2);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+
     /**
      * Dubbo panel
      *
@@ -248,7 +214,7 @@ public class DubboPanel extends JBPanel {
                 if (StrUtils.isBlank(name)) {
                     name = this.dubboMethodEntity.getInterfaceName() + "#" + this.dubboMethodEntity.getMethodName();
                 }
-                String id = StrUtils.isBlank(this.dubboMethodEntity.getId()) ? UUID.randomUUID().toString() : this.dubboMethodEntity.getId();
+                String id = UUID.randomUUID().toString();
                 CacheInfo of = CacheInfo.of(id, name, this.dubboMethodEntity);
                 instance.add(of, DubboSetingState.CacheType.COLLECTIONS);
                 //刷新左边树结构
@@ -262,10 +228,17 @@ public class DubboPanel extends JBPanel {
             if (isBlankEntity()) {
                 return;
             }
-            String name = this.dubboMethodEntity.getMethodName() + "#" + this.dubboMethodEntity.getInterfaceName();
             String id = StrUtils.isBlank(this.dubboMethodEntity.getId()) ? UUID.randomUUID().toString() : this.dubboMethodEntity.getId();
-            CacheInfo of = CacheInfo.of(id, name, this.dubboMethodEntity);
-            instance.add(of, DubboSetingState.CacheType.COLLECTIONS);
+            CacheInfo cacheInfo = instance.getCacheInfo(id, DubboSetingState.CacheType.COLLECTIONS);
+            if (cacheInfo == null) {
+                String name = this.dubboMethodEntity.getMethodName() + "#" + this.dubboMethodEntity.getInterfaceName();
+                cacheInfo = CacheInfo.of(id, name, this.dubboMethodEntity);
+            } else {
+                // 不覆盖名字
+                cacheInfo = CacheInfo.of(id, cacheInfo.getName(), this.dubboMethodEntity);
+            }
+
+            instance.add(cacheInfo, DubboSetingState.CacheType.COLLECTIONS);
             //刷新左边树结构
             leftTree.refresh();
         });
@@ -298,11 +271,11 @@ public class DubboPanel extends JBPanel {
                 tip.updateUI();
                 long start = System.currentTimeMillis();
                 try {
-                    Object invoke = submit.get(10, TimeUnit.SECONDS);
+                    Object result = submit.get(10, TimeUnit.SECONDS);
 
                     PluginUtils.writeDocument(this.project,
                             this.jsonEditorResp.getDocument(),
-                            JsonUtils.toPrettyJSONString(invoke));
+                            Json.prettyPrint(result));
 
                     long end = System.currentTimeMillis();
                     this.tip.setText("time:" + (end - start));
@@ -313,10 +286,10 @@ public class DubboPanel extends JBPanel {
                     tip.updateUI();
                     submit.cancel(true);
                 } catch (ExecutionException | InterruptedException exception) {
-                    String replaceAll = exception.getLocalizedMessage().replaceAll("\r\n", "\n");
                     PluginUtils.writeDocument(this.project,
                             this.jsonEditorResp.getDocument(),
-                            replaceAll);
+                            ThrowableUtil.stackTraceToString(exception));
+                    tip.setText("Failed! Please try again.");
                 }
             });
 
@@ -351,7 +324,7 @@ public class DubboPanel extends JBPanel {
         this.dubboMethodEntity.setGroup(groupTextField.getText());
         if (jsonEditorReq.getDocumentText() != null
                 && jsonEditorReq.getDocumentText().length() > 0) {
-            DubboMethodEntity dubboMethodEntity = JsonUtils.toJava(jsonEditorReq.getDocumentText(), DubboMethodEntity.class);
+            DubboMethodEntity dubboMethodEntity = Json.fromJson(jsonEditorReq.getDocumentText(), DubboMethodEntity.class);
             this.dubboMethodEntity.setMethodType(dubboMethodEntity.getMethodType());
             this.dubboMethodEntity.setParam(dubboMethodEntity.getParam());
         } else {
@@ -396,7 +369,7 @@ public class DubboPanel extends JBPanel {
 
         PluginUtils.writeDocument(dubboPanel.getProject(),
                 jsonEditorReq.getDocument(),
-                JsonUtils.toPrettyJSONString(map));
+                Json.prettyPrint(map));
         dubboPanel.updateUI();
     }
 

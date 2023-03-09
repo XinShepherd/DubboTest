@@ -32,7 +32,7 @@ public enum SupportType {
      */
     BOOLEAN {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
             return false;
         }
     },
@@ -41,7 +41,7 @@ public enum SupportType {
      */
     CHAR {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
             return "";
         }
     },
@@ -50,7 +50,7 @@ public enum SupportType {
      */
     INTEGER {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
             return 0;
         }
     },
@@ -59,7 +59,7 @@ public enum SupportType {
      */
     FLOAT {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
             return 0;
         }
     },
@@ -68,7 +68,7 @@ public enum SupportType {
      */
     STRING {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
             return "";
         }
     },
@@ -77,7 +77,7 @@ public enum SupportType {
      */
     LIST {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
             String canonicalText = psiVariable.getType().getCanonicalText();
             if (canonicalText.indexOf("<") > 0) {
                 canonicalText = canonicalText.substring(canonicalText.indexOf("<") + 1, canonicalText.length() - 1);
@@ -88,12 +88,12 @@ public enum SupportType {
             if (psiClass == null || isBaseType(psiClass.getQualifiedName())) {
                 return Collections.emptyList();
             } else {
-                if (isNotExistAndSet(psiClass.getName(),map)) {
-                    Object value = SupportType.getValueByPsiClass(psiClass,map);
+                if (isNotExistAndSet(psiClass.getName(), map)) {
+                    Object value = SupportType.getValueByPsiClass(psiClass, map);
                     List<Object> arrayList = new ArrayList<>(1);
                     arrayList.add(value);
                     return arrayList;
-                }else {
+                } else {
                     return Collections.emptyList();
                 }
             }
@@ -104,7 +104,7 @@ public enum SupportType {
      */
     MAP {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
             return new Object();
         }
     },
@@ -113,7 +113,7 @@ public enum SupportType {
      */
     DATE {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
             return "";
         }
     },
@@ -123,13 +123,13 @@ public enum SupportType {
      */
     OTHER {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
-            String className =StrUtils.trimClassName(psiVariable.getType().getCanonicalText());
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
+            String className = StrUtils.trimClassName(psiVariable.getType().getCanonicalText());
             PsiClass psiClass = JavaPsiFacade.getInstance(psiVariable.getProject()).findClass(className,
                     new ProjectAndLibrariesScope(psiVariable.getProject()));
-            if (psiClass != null && isNotExistAndSet(psiClass.getName(),map)) {
-                return SupportType.getValueByPsiClass(psiClass,map);
-            }else {
+            if (psiClass != null && isNotExistAndSet(psiClass.getName(), map)) {
+                return SupportType.getValueByPsiClass(psiClass, map);
+            } else {
                 return new Object();
             }
 
@@ -141,7 +141,7 @@ public enum SupportType {
      */
     ENUM {
         @Override
-        public Object getValue(PsiVariable psiVariable,Map<String,String> map) {
+        public Object getValue(PsiVariable psiVariable, Map<String, String> map) {
             return null;
         }
     };
@@ -153,25 +153,25 @@ public enum SupportType {
      * @return the value
      * @since 1.0.0
      */
-    public abstract Object getValue(PsiVariable psiVariable,Map<String,String> map);
+    public abstract Object getValue(PsiVariable psiVariable, Map<String, String> map);
 
 
-    public static Object getValueByPsiClass(PsiClass psiClass,Map<String,String> map) {
+    public static Object getValueByPsiClass(PsiClass psiClass, Map<String, String> map) {
         PsiField[] allField = PsiClassImplUtil.getAllFields(psiClass);
         Map<String, Object> result = new HashMap<>();
         for (PsiField psiField : allField) {
             SupportType touch = touch(psiField);
-            result.put(psiField.getName(), touch.getValue(psiField,map));
+            result.put(psiField.getName(), touch.getValue(psiField, map));
         }
         result.put("class", psiClass.getQualifiedName());
         return result;
     }
 
-    public boolean isNotExistAndSet(String str,Map<String,String> map){
+    public boolean isNotExistAndSet(String str, Map<String, String> map) {
         if (!map.containsKey(str)) {
-            map.put(str,str);
+            map.put(str, str);
             return true;
-        }else {
+        } else {
             return false;
         }
     }
@@ -186,11 +186,13 @@ public enum SupportType {
     public static SupportType touch(PsiVariable parameter) {
         PsiType type = parameter.getType();
 
-        if (PsiType.BOOLEAN.equals(type)) {
+        if (PsiType.BOOLEAN.equals(type)
+                || type.equalsToText(Boolean.class.getCanonicalName())) {
             return SupportType.BOOLEAN;
         }
 
-        if (PsiType.CHAR.equals(type)) {
+        if (PsiType.CHAR.equals(type)
+                || type.equalsToText(Character.class.getCanonicalName())) {
             return SupportType.CHAR;
         }
 
