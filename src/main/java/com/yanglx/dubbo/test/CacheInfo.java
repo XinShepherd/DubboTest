@@ -164,11 +164,10 @@ public class CacheInfo implements Serializable {
         if (StringUtils.isNotBlank(getMethodTypeJson())) {
             List<String> stringList = Json.fromJson(getMethodTypeJson(), new TypeReference<>() {
             });
-            String[] methodTypes = new String[stringList.size()];
-            for (int i = 0; i < stringList.size(); i++) {
-                methodTypes[i] = stringList.get(i);
+            if (stringList != null) {
+                String[] methodTypes = stringList.toArray(String[]::new);
+                dubboMethodEntity.setMethodType(methodTypes);
             }
-            dubboMethodEntity.setMethodType(methodTypes);
         }
 
         if (StringUtils.isNotBlank(getParamObjJson())) {

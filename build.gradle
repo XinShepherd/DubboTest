@@ -33,7 +33,9 @@ dependencies {
         exclude group: 'org.slf4j'
         exclude group: 'org.apache.zookeeper'
     }
-    implementation 'org.apache.zookeeper:zookeeper:3.4.13'
+    implementation ('org.apache.zookeeper:zookeeper:3.4.13') {
+        exclude group: 'org.slf4j'
+    }
     implementation fileTree(dir: 'lib', includes: ['*.jar'])
 }
 
