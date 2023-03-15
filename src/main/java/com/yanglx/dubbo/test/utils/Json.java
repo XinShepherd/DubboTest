@@ -1,5 +1,6 @@
 package com.yanglx.dubbo.test.utils;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -30,6 +31,9 @@ public class Json {
         mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // 忽略 map 中的 key
+        mapper.configOverride(Map.class)
+                .setIgnorals(JsonIgnoreProperties.Value.forIgnoredProperties("class"));
         return mapper;
     }
 
